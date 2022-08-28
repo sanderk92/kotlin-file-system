@@ -13,7 +13,10 @@ repositories {
 
 dependencies {
     implementation("com.amazonaws:aws-java-sdk-s3:1.12.290")
-    testImplementation(kotlin("test"))
+
+    testImplementation("io.mockk:mockk:1.12.7")
+    testImplementation("org.assertj:assertj-core:3.23.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.0")
 }
 
 tasks.test {

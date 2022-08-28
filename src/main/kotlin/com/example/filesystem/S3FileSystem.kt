@@ -1,19 +1,15 @@
 package com.example.filesystem
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.s3.AmazonS3ClientBuilder
+import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.*
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.file.Path
 
-class S3FileSystem(private val props: S3FileSystemProperties) : FileSystem {
-
-    private val s3 = AmazonS3ClientBuilder.standard()
-        .withCredentials(AWSStaticCredentialsProvider(BasicAWSCredentials(props.accessKey, props.secretKey)))
-        .withRegion(props.region)
-        .build()
+class S3FileSystem(
+    private val s3: AmazonS3,
+    private val props: S3FileSystemProperties,
+) : FileSystem {
 
     override fun write(inputStream: InputStream, targetPath: Path): FileSystemResult {
         val request = putObjectRequest(inputStream, targetPath.toString())
