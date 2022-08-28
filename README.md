@@ -9,12 +9,12 @@ class MyClass(private val fileSystem: FileSystem) {
         val path = Path.of("/myFolder/myFile.txt")
 
         // Writing InputStream to a specific path
-        val content = "content".byteInputStream()
-        fileSystem.write(content, path)
+        val inputStream = "content".byteInputStream()
+        fileSystem.write(inputStream, path)
 
         // Reading content at a path to OutputStream
-        val file = FileOutputStream(File("otherFolder/myFile.txt"))
-        fileSystem.read(path, file)
+        val outputStream = FileOutputStream(File("otherFolder/myFile.txt"))
+        fileSystem.read(path, outputStream)
 
         // Deleting a path
         fileSystem.delete(path)
