@@ -1,6 +1,6 @@
 # Kotlin File System
 
-A generic collection of tools for local, s3 etc. storage.
+A generic collection of tools for local, s3 storage.
 
 ```kotlin
 class MyClass(private val fileSystem: FileSystem) {
