@@ -12,25 +12,25 @@ class S3FileSystem(
 ) : FileSystem {
 
     override fun write(inputStream: InputStream, targetPath: Path): FileSystemResult {
-        val request = putObjectRequest(inputStream, targetPath.toString())
-
         if (exists(targetPath)) return InputError("targetPath already exists")
+
+        val request = putObjectRequest(inputStream, targetPath.toString())
 
         return fileSystemResult { s3.putObject(request) }
     }
 
     override fun read(sourcePath: Path, outputStream: OutputStream): FileSystemResult {
-        val request = getObjectRequest(sourcePath.toString())
-
         if (!exists(sourcePath)) return InputError("sourcePath does not exist")
+
+        val request = getObjectRequest(sourcePath.toString())
 
         return fileSystemResult { s3.getObject(request).also { transfer(it, outputStream) } }
     }
 
     override fun delete(sourcePath: Path): FileSystemResult {
-        val request = deleteObjectRequest(sourcePath.toString())
-
         if (!exists(sourcePath)) return InputError("sourcePath does not exist")
+
+        val request = deleteObjectRequest(sourcePath.toString())
 
         return fileSystemResult { s3.deleteObject(request) }
     }
