@@ -16,7 +16,7 @@ class S3FileSystem(
 
         val request = putObjectRequest(inputStream, targetPath.toString())
 
-        return fileSystemResult { s3.putObject(request) }
+        return fileSystemResult(targetPath) { s3.putObject(request) }
     }
 
     override fun read(sourcePath: Path, outputStream: OutputStream): FileSystemResult {
@@ -24,7 +24,7 @@ class S3FileSystem(
 
         val request = getObjectRequest(sourcePath.toString())
 
-        return fileSystemResult { s3.getObject(request).also { transfer(it, outputStream) } }
+        return fileSystemResult(sourcePath) { s3.getObject(request).also { transfer(it, outputStream) } }
     }
 
     override fun delete(sourcePath: Path): FileSystemResult {
@@ -32,7 +32,7 @@ class S3FileSystem(
 
         val request = deleteObjectRequest(sourcePath.toString())
 
-        return fileSystemResult { s3.deleteObject(request) }
+        return fileSystemResult(sourcePath) { s3.deleteObject(request) }
     }
 
     private fun exists(targetPath: Path) =

@@ -14,7 +14,7 @@ class LocalFileSystem(props: LocalFileSystemProperties) : FileSystem {
 
         if (Files.exists(target)) return InputError("The target path already exists")
 
-        return fileSystemResult { copy(inputStream, target) }
+        return fileSystemResult(targetPath) { copy(inputStream, target) }
     }
 
     override fun read(sourcePath: Path, outputStream: OutputStream): FileSystemResult {
@@ -22,7 +22,7 @@ class LocalFileSystem(props: LocalFileSystemProperties) : FileSystem {
 
         if (!Files.exists(source)) return InputError("The source path does not exist")
 
-        return fileSystemResult { copy(source, outputStream) }
+        return fileSystemResult(sourcePath) { copy(source, outputStream) }
     }
 
     override fun delete(sourcePath: Path): FileSystemResult {
@@ -30,7 +30,7 @@ class LocalFileSystem(props: LocalFileSystemProperties) : FileSystem {
 
         if (!Files.exists(source)) return InputError("The source path does not exist")
 
-        return fileSystemResult { deleteAll(source) }
+        return fileSystemResult(sourcePath) { deleteAll(source) }
     }
 }
 

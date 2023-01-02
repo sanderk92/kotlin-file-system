@@ -45,8 +45,9 @@ class S3FileSystemTest {
         every { mockS3.doesObjectExist(BUCKET, file.toString()) } returns false
         every { mockS3.putObject(capture(putObjectSlot)) } returns PutObjectResult()
 
-        instance.write(inputStream, file).getOrFail()
+        val result = instance.write(inputStream, file).getOrFail()
 
+        assertThat(result).isEqualTo(file)
         val captured = putObjectSlot.captured
         assertThat(captured.bucketName).isEqualTo(BUCKET)
         assertThat(captured.key).isEqualTo(file.toString())
@@ -66,8 +67,9 @@ class S3FileSystemTest {
         every { mockS3.getObject(capture(getObjectSlot)) } returns s3Object
 
         val outputStream = ByteArrayOutputStream()
-        instance.read(file, outputStream).getOrFail()
+        val result = instance.read(file, outputStream).getOrFail()
 
+        assertThat(result).isEqualTo(file)
         val captured = getObjectSlot.captured
         assertThat(captured.bucketName).isEqualTo(BUCKET)
         assertThat(captured.key).isEqualTo(file.toString())
@@ -82,8 +84,9 @@ class S3FileSystemTest {
         every { mockS3.doesObjectExist(BUCKET, file.toString()) } returns true
         every { mockS3.deleteObject(capture(deleteObjectSlot)) } returns Unit
 
-        instance.delete(file).getOrFail()
+        val result = instance.delete(file).getOrFail()
 
+        assertThat(result).isEqualTo(file)
         val captured = deleteObjectSlot.captured
         assertThat(captured.bucketName).isEqualTo(BUCKET)
         assertThat(captured.key).isEqualTo(file.toString())

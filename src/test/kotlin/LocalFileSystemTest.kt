@@ -6,7 +6,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -33,9 +32,10 @@ class LocalFileSystemTest {
         val inputStream = content.byteInputStream()
 
         // Act
-        instance.write(inputStream, file).getOrFail()
+        val result = instance.write(inputStream, file).getOrFail()
 
         // Assert
+        assertThat(result).isEqualTo(file)
         assertThat(Files.readAllBytes(tempDir.resolve(file))).isEqualTo(content.toByteArray())
     }
 
@@ -51,9 +51,10 @@ class LocalFileSystemTest {
 
         // Act
         val outputStream = ByteArrayOutputStream()
-        instance.read(path, outputStream).getOrFail()
+        val result = instance.read(path, outputStream).getOrFail()
 
         // Assert
+        assertThat(result).isEqualTo(path)
         assertThat(outputStream.toByteArray()).isEqualTo(content.toByteArray())
     }
 
@@ -68,9 +69,10 @@ class LocalFileSystemTest {
         Files.write(path, content.toByteArray())
 
         // Act
-        instance.delete(file).getOrFail()
+        val result = instance.delete(file).getOrFail()
 
         // Assert
+        assertThat(result).isEqualTo(file)
         assertThat(file).doesNotExist()
     }
 }

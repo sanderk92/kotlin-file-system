@@ -6,7 +6,7 @@ import com.example.filesystem.InputError
 import com.example.filesystem.Success
 
 fun FileSystemResult.getOrFail() = when (this) {
-    is Success -> Unit
+    is Success -> path
     is InputError -> throw AssertionError("Expected a success result, but was a InputError. Cause: $message")
-    is FileSystemError -> throw AssertionError("Expected a success result, but was a FileSystemError. Cause: $message")
+    is FileSystemError -> throw AssertionError("Expected a success result, but was a FileSystemError. Cause: $exception")
 }
