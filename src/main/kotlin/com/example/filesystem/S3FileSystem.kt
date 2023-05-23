@@ -14,7 +14,12 @@ class S3FileSystem(
     override fun write(inputStream: InputStream, targetPath: Path): FileSystemResult {
         if (exists(targetPath)) return InputError("targetPath already exists")
 
-        val request = putObjectRequest(inputStream, targetPath.toString())
+        val request = PutObjectRequest(
+            props.bucket,
+            targetPath.toString(),
+            inputStream,
+            ObjectMetadata()
+        )
 
         return runCatching { s3.putObject(request) }
             .map { Success(targetPath) }
@@ -24,7 +29,10 @@ class S3FileSystem(
     override fun read(sourcePath: Path, outputStream: OutputStream): FileSystemResult {
         if (!exists(sourcePath)) return InputError("sourcePath does not exist")
 
-        val request = getObjectRequest(sourcePath.toString())
+        val request = GetObjectRequest(
+            props.bucket,
+            sourcePath.toString()
+        )
 
         return runCatching { s3.getObject(request).also { transfer(it, outputStream) } }
             .map { Success(sourcePath) }
@@ -34,7 +42,10 @@ class S3FileSystem(
     override fun delete(sourcePath: Path): FileSystemResult {
         if (!exists(sourcePath)) return InputError("sourcePath does not exist")
 
-        val request = deleteObjectRequest(sourcePath.toString())
+        val request = DeleteObjectRequest(
+            props.bucket,
+            sourcePath.toString()
+        )
 
         return runCatching { s3.deleteObject(request) }
             .map { Success(sourcePath) }
@@ -43,26 +54,6 @@ class S3FileSystem(
 
     private fun exists(targetPath: Path) =
         s3.doesObjectExist(props.bucket, targetPath.toString())
-
-    private fun putObjectRequest(inputStream: InputStream, fileKey: String): PutObjectRequest =
-        PutObjectRequest(
-            props.bucket,
-            fileKey,
-            inputStream,
-            ObjectMetadata()
-        )
-
-    private fun getObjectRequest(fileKey: String): GetObjectRequest =
-        GetObjectRequest(
-            props.bucket,
-            fileKey
-        )
-
-    private fun deleteObjectRequest(fileKey: String): DeleteObjectRequest =
-        DeleteObjectRequest(
-            props.bucket,
-            fileKey
-        )
 }
 
 private fun transfer(s3Object: S3Object, outputStream: OutputStream) {
