@@ -1,67 +1,43 @@
 package com.example.filesystem
 
 import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.model.*
+import com.amazonaws.services.s3.model.DeleteObjectRequest
+import com.amazonaws.services.s3.model.ObjectMetadata
+import com.amazonaws.services.s3.model.PutObjectRequest
 import java.io.InputStream
-import java.io.OutputStream
-import java.nio.file.Path
+import java.net.URL
+import java.time.Clock
+import java.time.temporal.ChronoUnit
+import java.util.Date
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
+import org.springframework.context.annotation.Primary
+import org.springframework.stereotype.Service
 
-class S3FileSystem(
+@Primary
+@Service
+@ConditionalOnMissingBean(FileSystem::class)
+internal class S3FileSystem(
     private val s3: AmazonS3,
     private val props: S3FileSystemProperties,
+    private val clock: Clock,
 ) : FileSystem {
-
-    override fun write(inputStream: InputStream, targetPath: Path): FileSystemResult {
-        if (exists(targetPath)) return InputError("targetPath already exists")
-
-        val request = PutObjectRequest(
-            props.bucket,
-            targetPath.toString(),
-            inputStream,
-            ObjectMetadata()
-        )
-
-        return runCatching { s3.putObject(request) }
-            .map { Success(targetPath) }
-            .getOrElse(::FileSystemError)
+    override fun write(key: String, content: InputStream): String {
+        val request = PutObjectRequest(props.bucket, key, content, ObjectMetadata())
+        s3.putObject(request)
+        return key
     }
 
-    override fun read(sourcePath: Path, outputStream: OutputStream): FileSystemResult {
-        if (!exists(sourcePath)) return InputError("sourcePath does not exist")
-
-        val request = GetObjectRequest(
-            props.bucket,
-            sourcePath.toString()
-        )
-
-        return runCatching { s3.getObject(request).also { transfer(it, outputStream) } }
-            .map { Success(sourcePath) }
-            .getOrElse(::FileSystemError)
+    override fun delete(key: String) {
+        val request = DeleteObjectRequest(props.bucket, key)
+        s3.deleteObject(request)
     }
 
-    override fun delete(sourcePath: Path): FileSystemResult {
-        if (!exists(sourcePath)) return InputError("sourcePath does not exist")
-
-        val request = DeleteObjectRequest(
-            props.bucket,
-            sourcePath.toString()
-        )
-
-        return runCatching { s3.deleteObject(request) }
-            .map { Success(sourcePath) }
-            .getOrElse(::FileSystemError)
+    override fun createLink(key: String, minutes: Long): URL {
+        val expiry = clock.instant().plus(minutes, ChronoUnit.MINUTES)
+        return s3.generatePresignedUrl(props.bucket, key, Date.from(expiry))
     }
 
-    private fun exists(targetPath: Path) =
-        s3.doesObjectExist(props.bucket, targetPath.toString())
-}
-
-private fun transfer(s3Object: S3Object, outputStream: OutputStream) {
-    runCatching {
-        s3Object.objectContent.use { inputStream ->
-            outputStream.use { outputStream ->
-                inputStream.transferTo(outputStream)
-            }
-        }
+    override fun exists(key: String): Boolean {
+        return s3.doesObjectExist(props.bucket, key)
     }
 }

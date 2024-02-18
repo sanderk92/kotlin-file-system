@@ -1,31 +1,26 @@
 package com.example.filesystem
 
 import java.io.InputStream
-import java.io.OutputStream
-import java.nio.file.Path
+import java.net.URL
 
-interface FileSystem {
+internal interface FileSystem {
+    /**
+     * Writes the specified content to specified key.
+     */
+    fun write(key: String, content: InputStream): String
 
     /**
-     * Writes the specified [InputStream] to specified [Path].
-     *
-     * @param inputStream to read from
-     * @param targetPath to write to
+     * Deletes the file at the specified key
      */
-    fun write(inputStream: InputStream, targetPath: Path): FileSystemResult
+    fun delete(key: String)
 
     /**
-     * Read the specified [Path] to the specified [OutputStream].
-     *
-     * @param sourcePath to read from
-     * @param outputStream to write to
+     * Create a link to access the file with the specified key. Valid for the specified amount of minutes.
      */
-    fun read(sourcePath: Path, outputStream: OutputStream): FileSystemResult
+    fun createLink(key: String, minutes: Long): URL
 
     /**
-     * Deletes the file at the specified [Path]
-     *
-     * @param sourcePath Path of the file to delete
+     * Check if the specified key exists
      */
-    fun delete(sourcePath: Path): FileSystemResult
+    fun exists(key: String): Boolean
 }

@@ -1,55 +1,82 @@
 package com.example.filesystem
 
 import java.io.InputStream
-import java.io.OutputStream
+import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.absolute
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.core.io.FileUrlResource
+import org.springframework.core.io.Resource
+import org.springframework.stereotype.Service
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import org.springframework.web.servlet.resource.PathResourceResolver
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
-class LocalFileSystem(props: LocalFileSystemProperties) : FileSystem {
+private const val FILES_ENDPOINT = "files"
 
-    private val baseStoragePath: Path = Path.of(props.baseStoragePath)
+/**
+ * This local file system is purely intended for development/test purposes. Files are stored in a temporary
+ * directory which is removed after system restart, exposed under a public endpoint and links generated
+ * to this public endpoint. It is a simple and free alternative to s3 signed urls.
+ */
+@Service
+@ConditionalOnProperty("feature.dev.local-file-system", havingValue = "true")
+internal class LocalFileSystem : FileSystem, WebMvcConfigurer {
+    private val baseStoragePath: Path = Files.createTempDirectory("files-").absolute()
 
-    override fun write(inputStream: InputStream, targetPath: Path): FileSystemResult {
-        val target = baseStoragePath.resolve(targetPath)
-
-        if (Files.exists(target)) return InputError("The target path already exists")
-
-        return runCatching { copy(inputStream, target) }
-            .map { Success(targetPath) }
-            .getOrElse(::FileSystemError)
+    override fun write(key: String, content: InputStream): String {
+        copy(content, baseStoragePath.resolve(key))
+        return key
     }
 
-    override fun read(sourcePath: Path, outputStream: OutputStream): FileSystemResult {
-        val source = baseStoragePath.resolve(sourcePath)
-
-        if (!Files.exists(source)) return InputError("The source path does not exist")
-
-        return runCatching { copy(source, outputStream) }
-            .map { Success(sourcePath) }
-            .getOrElse(::FileSystemError)
+    override fun delete(key: String) {
+        deleteAll(baseStoragePath.resolve(key))
     }
 
-    override fun delete(sourcePath: Path): FileSystemResult {
-        val source = baseStoragePath.resolve(sourcePath)
-
-        if (!Files.exists(source)) return InputError("The source path does not exist")
-
-        return runCatching { deleteAll(source) }
-            .map { Success(sourcePath) }
-            .getOrElse(::FileSystemError)
+    override fun createLink(key: String, minutes: Long): URL {
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+            .pathSegment(FILES_ENDPOINT)
+            .pathSegment(key)
+            .build()
+            .toUri()
+            .toURL()
     }
+
+    override fun exists(key: String): Boolean {
+        return Files.exists(baseStoragePath.resolve(key))
+    }
+
+//  Required when using spring security
+//    @Bean
+//    fun webSecurityCustomizer(): WebSecurityCustomizer {
+//        return WebSecurityCustomizer { web ->
+//            web.ignoring().requestMatchers("/$FILES_ENDPOINT/**")
+//        }
+//    }
+
+    override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
+        registry
+            .addResourceHandler("/$FILES_ENDPOINT/**")
+            .addResourceLocations("file:$baseStoragePath")
+            .setCachePeriod(0)
+            .resourceChain(true)
+            .addResolver(customPathResolver())
+    }
+
+    private fun customPathResolver() =
+        object : PathResourceResolver() {
+            override fun getResource(resourcePath: String, location: Resource): Resource {
+                return FileUrlResource("${location.file.path}/$resourcePath")
+            }
+        }
 }
 
 private fun copy(inputStream: InputStream, path: Path) {
     inputStream.use {
         Files.createDirectories(path.parent)
         Files.copy(it, path)
-    }
-}
-
-private fun copy(path: Path, outputStream: OutputStream) {
-    outputStream.use {
-        Files.copy(path, outputStream)
     }
 }
 
